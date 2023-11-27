@@ -80,6 +80,12 @@ void setup() {
   }
   leftFile = left_sound.read();
   rightFile = right_sound.read();
+  if(files[leftFile] == ""){
+    leftFile = 0;
+  }
+  if(files[rightFile] == ""){
+    rightFile = 0;
+  }
   // Catch this edge case where we only have one audio file present
   if(fileCount == 1){
     // We use the same for both sides
