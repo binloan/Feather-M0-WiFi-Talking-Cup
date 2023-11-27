@@ -31,6 +31,8 @@ char ssid[] = "TALKING_CUP";        // your network SSID (name)
 // WiFi Server Status
 const int serverOnlineTimeMs = 1000 * 30;
 bool isWifiActive = true;
+// This is a horrible hack...I'm just a lazy pseudo Korean, OK?
+bool ignoreInital = true;
 int activeConnections = 0;
 WiFiServer server(80);
 int status = WL_IDLE_STATUS;
@@ -200,7 +202,11 @@ void computeWebServer(){
               client.print("\">&#9194;</a></td><td style=\"text-align:center; border: 1px solid black;\"><a href=\"/");
               client.print("R_");
               client.print(files[i]);
-              client.print("\">&#9193;</a></td></tr>");
+              client.print("\">&#9193;</a></td>");
+              client.print("<td style=\"text-align:center; border: 1px solid black;\"><a href=\"/");
+              client.print("P_");
+              client.print(files[i]);
+              client.print("\">&#9654;</a></td>");
             }
             client.print("</table></body></html>");
             // The HTTP response ends with another blank line:
@@ -219,31 +225,59 @@ void computeWebServer(){
         // Read the HTTP response from the Client and scan for an assignment
         // TODO: Only receive one full request not two
         if (currentLine.startsWith("GET /L_") && currentLine.endsWith("HTTP/1.1")) {
-          // Get the index of the HTTP request
-          int httpIndex = currentLine.indexOf("HTTP/1.1");
-          // Create file substring
-          String file = currentLine.substring(7, httpIndex - 1);
-          // Search for the file in the list and assign it
-          for(int i = 0; i < fileCount; i++){
-            if(files[i].equalsIgnoreCase(file)){
-              leftFile = i;
-              Serial.print("New assignment for left: ");Serial.println(file);
-              left_sound.write(leftFile);
+          if(!ignoreInital){
+            // Get the index of the HTTP request
+            int httpIndex = currentLine.indexOf("HTTP/1.1");
+            // Create file substring
+            String file = currentLine.substring(7, httpIndex - 1);
+            // Search for the file in the list and assign it
+            for(int i = 0; i < fileCount; i++){
+              if(files[i].equalsIgnoreCase(file)){
+                ignoreInital = true;
+                leftFile = i;
+                Serial.print("New assignment for left: ");Serial.println(file);
+                left_sound.write(leftFile);
+              }
             }
+          }else{
+            ignoreInital = false;
           }
         }else if(currentLine.startsWith("GET /R_") && currentLine.endsWith("HTTP/1.1")){
-          // Get the index of the HTTP request
-          int httpIndex = currentLine.indexOf("HTTP/1.1");
-          // Create file substring
-          String file = currentLine.substring(7, httpIndex - 1);
-          // Search for the file in the list and assign it
-          for(int i = 0; i < fileCount; i++){
-            if(files[i].equalsIgnoreCase(file)){
-              rightFile = i;
-              Serial.print("New assignment for right: ");Serial.println(file);
-              right_sound.write(rightFile);
+          if(!ignoreInital){
+            // Get the index of the HTTP request
+            int httpIndex = currentLine.indexOf("HTTP/1.1");
+            // Create file substring
+            String file = currentLine.substring(7, httpIndex - 1);
+            // Search for the file in the list and assign it
+            for(int i = 0; i < fileCount; i++){
+              if(files[i].equalsIgnoreCase(file)){
+                ignoreInital = true;
+                rightFile = i;
+                Serial.print("New assignment for right: ");Serial.println(file);
+                right_sound.write(rightFile);
+              }
             }
+          }else{
+            ignoreInital = false;
           }
+        }else if(currentLine.startsWith("GET /P_") && currentLine.endsWith("HTTP/1.1")){
+          if(!ignoreInital){
+            // Get the index of the HTTP request
+            int httpIndex = currentLine.indexOf("HTTP/1.1");
+            // Create file substring
+            String file = currentLine.substring(7, httpIndex - 1);
+            // Search for the file in the list and assign it
+            for(int i = 0; i < fileCount; i++){
+              if(files[i].equalsIgnoreCase(file)){
+                ignoreInital = true;
+                rightFile = i;
+                Serial.print("Previewing file: ");Serial.println(file);
+                playSound(files[i]);
+              }
+            }
+          }else{
+            ignoreInital = false;
+          } 
         }
       }
     }
