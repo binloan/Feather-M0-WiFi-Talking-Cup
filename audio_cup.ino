@@ -31,6 +31,7 @@ char ssid[] = "TALKING_CUP";        // your network SSID (name)
 // WiFi Server Status
 const int serverOnlineTimeMs = 1000 * 30;
 bool isWifiActive = true;
+int activeConnections = 0;
 WiFiServer server(80);
 int status = WL_IDLE_STATUS;
 // Reserve a portion of flash memory to store an "int" variable
@@ -141,10 +142,16 @@ void wifiStatus(){
       Serial.print("New Wifi client: ");
       WiFi.APClientMacAddress(remoteMac);
       printMacAddress(remoteMac);
+      activeConnections += 1;
+    }else{
+      activeConnections -= 1;
+      if(activeConnections < 0){
+        activeConnections = 0;
+      }
     }
   }
   // Turn of WiFi after given time to combat background hiss
-  if(millis() > serverOnlineTimeMs){
+  if(millis() > serverOnlineTimeMs && activeConnections <= 0){
     Serial.print("Disabling WiFi...");
     server.flush();
     WiFi.end();
