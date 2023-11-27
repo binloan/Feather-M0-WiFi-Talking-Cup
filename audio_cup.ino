@@ -12,6 +12,7 @@
 #define CS 19
 // Pin for the touch button
 #define PLAY_BUTTON 15
+#define AMP_SHUTDOWN 16
 // The BNO055 object for reading absolute orientation data
 Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28, &Wire);
 // Make this volatile as it's accessed through the ISR
@@ -28,6 +29,8 @@ int fileCount = 0;
 // WiFi Network Details
 char ssid[] = "TALKING_CUP";        // your network SSID (name)
 // WiFi Server Status
+const int serverOnlineTimeMs = 1000 * 30;
+bool isWifiActive = true;
 WiFiServer server(80);
 int status = WL_IDLE_STATUS;
 // Reserve a portion of flash memory to store an "int" variable
@@ -40,6 +43,8 @@ void setup() {
   // Activate the INPUT for the touch button in the cup
   Serial.print("Initializing I/O ...");
   pinMode(PLAY_BUTTON, INPUT);
+  pinMode(AMP_SHUTDOWN, OUTPUT);
+  digitalWrite(AMP_SHUTDOWN, LOW);
   attachInterrupt(digitalPinToInterrupt(PLAY_BUTTON), touchChange, CHANGE);
   Serial.println("DONE!");
   // Start mounting the SD card
@@ -119,7 +124,9 @@ void touchChange() {
 void loop() {
   computeSound();
   wifiStatus();
-  computeWebServer();
+  if(isWifiActive){
+    computeWebServer();
+  }
 }
 
 void wifiStatus(){
@@ -135,6 +142,13 @@ void wifiStatus(){
       WiFi.APClientMacAddress(remoteMac);
       printMacAddress(remoteMac);
     }
+  }
+  // Turn of WiFi after given time to combat background hiss
+  if(millis() > serverOnlineTimeMs){
+    Serial.print("Disabling WiFi...");
+    server.flush();
+    WiFi.end();
+    Serial.println("DONE!");
   }
 }
 
@@ -253,6 +267,7 @@ void computeSound(){
 void playSound(String file){
   // Load the audio file from the SD card
   File audioFile = SD.open(file);
+  digitalWrite(AMP_SHUTDOWN, HIGH);
   // Start the audio engine
   AudioZero.begin(2*44100);
   // Check audio file was properly loaded
@@ -266,6 +281,7 @@ void playSound(String file){
   AudioZero.play(audioFile);
   // This function is called after playback
   AudioZero.end();
+  digitalWrite(AMP_SHUTDOWN, LOW);
   Serial.println("DONE!");
 }
 
